@@ -96,6 +96,21 @@ private ##################################
   def setup_language_pack_environment
   end
 
+  def add_to_profiled(string)
+    FileUtils.mkdir_p "#{build_path}/.profile.d"
+    File.open("#{build_path}/.profile.d/ruby.sh", "a") do |file|
+      file.puts string
+    end
+  end
+
+  def set_env_default(key, val)
+    add_to_profiled "export #{key}=${#{key}:-#{val}}"
+  end
+
+  def set_env_override(key, val)
+    add_to_profiled %{export #{key}="#{val.gsub('"','\"')}"}
+  end
+
   def log_internal(*args)
     message = build_log_message(args)
     %x{ logger -p user.notice -t "slugc[$$]" "buildpack-ruby #{message}" }
@@ -131,7 +146,14 @@ private ##################################
     %x{ #{command} 2>&1 }
   end
 
-  # run a shell command and stream the ouput
+  # run a shell command and pipe stderr to /dev/null
+  # @param [String] command to be run
+  # @return [String] output of stdout
+  def run_stdout(command)
+    %x{ #{command} 2>/dev/null }
+  end
+
+  # run a shell command and stream the output
   # @param [String] command to be run
   def pipe(command)
     output = ""
@@ -200,5 +222,11 @@ private ##################################
     system("cp -a #{from}/. #{to}")
   end
 
+  # check if the cache content exists
+  # @param [String] relative path of the cache contents
+  # @param [Boolean] true if the path exists in the cache and false if otherwise
+  def cache_exists?(path)
+    File.exists?(cache_base + path)
+  end
 end
 
